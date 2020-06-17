@@ -1,0 +1,93 @@
+---
+title: "Project1Q3"
+author: "Rutvik Gavaskar"
+date: "2/11/2020"
+output: html_document
+---
+
+```{r}
+#Step 1 - load required data
+dataset<-read.csv("ProjectDatasetTrain.csv")
+str(dataset, give.attr = FALSE)
+head(dataset)
+```
+
+```{r}
+#Step 2 - load the relevant libraries
+library(zoo)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(psych)
+library(rms)
+library(survival)
+```
+
+```{r}
+# Step 3 – quickly review the data with some quick histograms, here we are building separate plots for returnCustomer 1 and 0 values without any legend.
+ggplot(dataset) + geom_histogram(aes(x = tenurelengthinmonths ,fill = factor(renewed))) + facet_grid( ~ renewed ) + theme(legend.position = "none") 
+```
+
+```{r}
+# Step 4 - Create the survival object using monthsSinceFirstPurch and returnCustomer
+survObj <- Surv(dataset$tenurelengthinmonths, dataset$renewed)
+```
+
+```{r}
+# Step 5 check out the structure 
+str(survObj)
+```
+
+```{r}
+# Step 6 Compute and fit KM 
+fitKMSimple <- survfit(survObj ~ 1)
+```
+
+```{r}
+print(fitKMSimple)
+```
+
+```{r}
+# Step 7 Plot the fit
+plot(fitKMSimple,dots = TRUE, mark.time = TRUE,conf.int = FALSE, xlab = "Tenure Lengths in Months", ylab = "Survival function", main = "Survival function")
+grid(10, 10, lwd = 2)
+```
+
+```{r}
+# Step 8 Determine the distributions of the predictor variables 
+dd <- datadist(dataset)
+options(datadist = "dd")
+```
+
+```{r}
+# Step 9 Compute the Cox PH Model and print the results
+fitCPH <- cph(Surv(tenurelengthinmonths, renewed) ~ age	+ bodytype + dietarychoice + drinking + drugs + education + ethnicity + income + heightininches + jobcategory + commutedistance + orientation + religion + sex + sign + smokes + bilingual + homeowner + useslawnservice , data = dataset, x = TRUE, y = TRUE, surv = TRUE)
+print(fitCPH)
+```
+
+```{r}
+# Step 10 Interpret the coefficients  
+exp(fitCPH$coefficients)
+```
+
+```{r}
+# Step 11 Plot the result summary
+plot(summary(fitCPH), log = TRUE)
+```
+
+```{r}
+# Step 13  Check proportional hazard assumption, print result and plot it
+
+testCPH <- cox.zph(fitCPH)
+print(testCPH)
+#plot(testCPH, title='Company') 
+```
+
+```{r}
+# Step 14 Cross-validate
+validate(fitCPH, method = "crossvalidation", B = 10, pr = FALSE)
+```
+
+
+
